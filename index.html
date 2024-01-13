@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WalletX</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-gray-800 min-h-screen flex items-center justify-center">
+
+    <div id="walletContent" class="max-w-md mx-auto p-6 bg-gray-800 rounded-md shadow-md text-white">
+        <script src="https://cdn.ethers.io/lib/ethers-5.5.4.min.js"></script>
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                const walletContent = document.getElementById("walletContent");
+
+                let privateKey = '';
+                let walletAddress = '';
+                let recipientAddress = '';
+                let amountToSend = '';
+                let transactionHash = '';
+                let isNewWallet = true;
+                let ethBalance = 0;
+                let walletCreated = false;
+
+                let currentTab = 'sendMoney';
+
+                const createHTMLElement = (tagName, attributes, children) => {
+                    const element = document.createElement(tagName);
+                    for (const key in attributes) {
+                        element.setAttribute(key, attributes[key]);
+                    }
+                    if (children) {
+                        if (Array.isArray(children)) {
+                            children.forEach(child => element.appendChild(child));
+                        } else {
+                            element.appendChild(children);
+                        }
+                    }
+                    return element;
+                };
+
+                const renderWallet = () => {
+                    walletContent.innerHTML = '';
+                    renderWalletDetails();
+                    renderTabs();
+                    renderLogoutButton();
+                };
+
+                const renderWalletDetails = () => {
+                    const ethBalanceText = createHTMLElement('p', { class: 'text-center text-4xl' }, `${ethBalance} ETH`);
+                    const walletAddressText = createHTMLElement('p', { class: 'text-center' }, `Wallet Address: ${walletAddress}`);
+
+                    walletContent.appendChild(ethBalanceText);
+                    walletContent.appendChild(walletAddressText);
+                };
+
+                const renderTabs = () => {
+                    const tabs = createHTMLElement('div', { class: 'mb-4' }, [
+                        renderTab('sendMoney', 'Send Money'),
+                        renderTab('viewTransactions', 'View All Transactions'),
+                        renderTab('emptyTab', 'Private Key'),
+                    ]);
+
+                    walletContent.appendChild(tabs);
+
+                    const tabPanels = createHTMLElement('div', { class: 'mt-2' }, [
+                        renderTabPanel('sendMoney', [
+                            renderFormControl('Recipient Address:', 'text', recipientAddress, (e) => recipientAddress = e.target.value),
+                            renderFormControl('Amount to Send (ETH):', 'text', amountToSend, (e) => amountToSend = e.target.value),
+                            createHTMLElement('button', { class: 'bg-green-500 text-white py-2 px-4 rounded-full', onclick: sendFunds }, 'Send Funds')
+                        ]),
+                        renderTabPanel('viewTransactions', [
+                            createHTMLElement('p', { class: 'text-2xl font-semibold mb-4' }, 'View All Transactions'),
+                            // ... (code for viewing all transactions)
+                        ]),
+                        renderTabPanel('emptyTab', [
+                            createHTMLElement('p', { class: 'text-white mb-1' }, 'Private Key:'),
+                            createHTMLElement('p', { class: 'text-white' }, privateKey),
+                        ]),
+                    ]);
+
+                    walletContent.appendChild(tabPanels);
+                };
+
+                const renderTab = (value, text) => createHTMLElement('button', {
+                    class: `px-4 py-2 ${currentTab === value ? 'bg-gray-600' : 'bg-gray-700'} rounded-md mx-1`,
+                    onclick: () => handleTabChange(value)
+                }, text);
+
+                const renderTabPanel = (value, children) => createHTMLElement('div', {
+                    class: `${currentTab === value ? '' : 'hidden'} p-2`
+                }, children);
+
+                const renderFormControl = (label, type, value, onchange) => {
+                    const formControl = createHTMLElement('div', { class: 'mb-2' }, [
+                        createHTMLElement('label', { class: 'text-white' }, label),
+                        createHTMLElement('input', { type: type, value: value, oninput: onchange, class: 'bg-gray-700 text-white p-2 rounded-md w-full' }),
+                    ]);
+
+                    return formControl;
+                };
+
+                const renderLogoutButton = () => {
+                    const logoutButton = createHTMLElement('button', {
+                        class: 'bg-red-500 text-white py-2 px-4 rounded-full mt-4 w-full',
+                        onclick: logout
+                    }, 'Logout');
+
+                    walletContent.appendChild(logoutButton);
+                };
+
+                const createWallet = () => {
+                    const wallet = ethers.Wallet.createRandom();
+                    privateKey = wallet.privateKey;
+                    walletAddress = wallet.address;
+                    walletCreated = true;
+                    fetchEthBalance();
+                    renderWallet();
+                };
+
+                const importWallet = (privateKeyInput) => {
+                    privateKey = privateKeyInput;
+                    const wallet = new ethers.Wallet(privateKeyInput);
+                    walletAddress = wallet.address;
+                    walletCreated = true;
+                    fetchEthBalance();
+                    renderWallet();
+                };
+
+                const fetchEthBalance = async () => {
+                    try {
+                        const provider = new ethers.JsonRpcProvider('https://polygon-mumbai.g.alchemy.com/v2/3topTnnh-PPSDB8zI4MCLJbCfG2Wkpx1');
+                        const balance = await provider.getBalance(walletAddress);
+                        ethBalance = ethers.utils.formatEther(balance);
+                        renderWallet();
+                    } catch (error) {
+                        console.error('Error fetching ETH balance:', error);
+                    }
+                };
+
+                const handleTabChange = (tab) => {
+                    currentTab = tab;
+                    renderWallet();
+                };
+
+                const logout = () => {
+                    privateKey = '';
+                    walletAddress = '';
+                    recipientAddress = '';
+                    amountToSend = '';
+                    transactionHash = '';
+                    isNewWallet = false;
+                    ethBalance = 0;
+                    walletCreated = false;
+                    renderWallet();
+                };
+
+                const sendFunds = async () => {
+                    try {
+                        const provider = new ethers.JsonRpcProvider('https://polygon-mumbai.g.alchemy.com/v2/3topTnnh-PPSDB8zI4MCLJbCfG2Wkpx1');
+                        const wallet = new ethers.Wallet(privateKey, provider);
+                        const tx = await wallet.sendTransaction({
+                            to: recipientAddress,
+                            value: ethers.utils.parseEther(amountToSend),
+                        });
+                        transactionHash = tx.hash;
+                        renderWallet();
+                    } catch (error) {
+                        console.error('Error sending funds:', error);
+                    }
+                };
+
+                renderWallet();
+            });
+        </script>
+    </div>
+
+</body>
+
+</html>
