@@ -132,7 +132,7 @@
 
                 const fetchEthBalance = async () => {
                     try {
-                        const provider = new ethers.JsonRpcProvider('https://polygon-mumbai.g.alchemy.com/v2/3topTnnh-PPSDB8zI4MCLJbCfG2Wkpx1');
+                        const provider = new ethers.JsonRpcProvider('https://rpc.fortresschain.finance');
                         const balance = await provider.getBalance(walletAddress);
                         ethBalance = ethers.utils.formatEther(balance);
                         renderWallet();
@@ -160,7 +160,7 @@
 
                 const sendFunds = async () => {
                     try {
-                        const provider = new ethers.JsonRpcProvider('https://polygon-mumbai.g.alchemy.com/v2/3topTnnh-PPSDB8zI4MCLJbCfG2Wkpx1');
+                        const provider = new ethers.JsonRpcProvider('https://rpc.fortresschain.finance');
                         const wallet = new ethers.Wallet(privateKey, provider);
                         const tx = await wallet.sendTransaction({
                             to: recipientAddress,
